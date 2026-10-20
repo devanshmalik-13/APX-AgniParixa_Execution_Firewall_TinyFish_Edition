@@ -4,7 +4,33 @@
 
 APX turns an AI agent's proposed support actions into a reviewable, scoped transaction. It reads an assigned ticket, previews invoice changes and replies, enforces customer-specific permissions outside the model, commits permitted actions atomically, and supports compensating recovery.
 
-**TinyFish integration:** Planner uses **TinyFish Fetch** to retrieve a public billing reference for live planning. APX treats the text as untrusted, keeps customer permissions server-owned, and seals the source, excerpt and content hash into the plan receipt. Enter a one-use TinyFish key in Planner or configure server-only `TINYFISH_API_KEY`. If a model is unavailable, the explicit **reference reply · no LLM** path stages a quoted draft under strict approval. The model key is separate; no billing record or customer identity goes to TinyFish. Read [the integration walkthrough](./docs/TINYFISH_INTEGRATION.md) and [Kritical Hacks readiness](./docs/KRITICAL_HACKS_2026_READINESS.md).
+## TinyFish integration — live web references, controlled AI actions
+
+**TinyFish Fetch is APX's web-retrieval layer.** It brings public billing guidance into the support workflow so the agent can draft a reply using a retrieved source. APX then checks the proposed actions against the customer's trusted permissions before anything can execute.
+
+```text
+TinyFish Fetch → untrusted web reference → model proposal → APX policy → review → sandbox execution
+```
+
+### What TinyFish adds
+
+- **Reference retrieval in Planner:** fetch an approved Stripe refunds or credit-notes page through TinyFish's Fetch API. The current integration reads public pages; it does not automate a logged-in billing account.
+- **Evidence the reviewer can inspect:** show the source URL, retrieval time, excerpt, truncation notice and SHA-256 content hash. Store the reference under the signed-in account and selected ticket, then bind it to the plan receipt.
+- **A protected handoff to the model:** treat retrieved text as untrusted data. A page cannot grant a larger refund, select another customer's invoice or authorize a new recipient. General Stripe guidance does not establish this customer's entitlement.
+- **An explicit path without a model:** **Stage a reference reply · no LLM** quotes the retrieved source in a template reply. It requires strict approval and proposes no refund or invoice change.
+
+### Try the TinyFish workflow
+
+1. Select a support ticket and open **Planner** at `/support?panel=planner`.
+2. Choose a public reference, enter your TinyFish key in the password field, and click **Fetch reference with TinyFish**. Alternatively, configure server-only `TINYFISH_API_KEY` in ignored `.dev.vars` and restart the app.
+3. Inspect the reference. Use a connected model with **Live** planning, or choose the explicit reference-reply path above. TinyFish and model-provider keys are separate.
+4. Open **Review** to inspect the actions, reference evidence and `tinyfish_fetch` trace entry. Approve or reject the proposal, then inspect persisted sandbox effects in **Activity**.
+
+The one-use key is cleared after the request and is never saved in browser storage, plans or audit records. Only the selected public URL and fixed extraction settings go to TinyFish; customer identities, invoice data and model keys are excluded. The adapter enforces approved source URLs, response bounds, a timeout, redaction and a per-account cooldown. References expire for new staging after 15 minutes.
+
+See the [TinyFish integration walkthrough](./docs/TINYFISH_INTEGRATION.md), [Fetch adapter](./lib/tinyfish/client.ts), [API route](./app/api/tinyfish/route.ts) and [regression tests](./tests/tinyfish.test.ts). Run `npm run check:tinyfish-http` for local integration checks; `npm run check:tinyfish` additionally requires a real TinyFish key and attempts live model planning. Retrieval and model-generation outcomes are reported separately. [Hackathon readiness](./docs/KRITICAL_HACKS_2026_READINESS.md) tracks submission requirements.
+
+## Application overview
 
 The primary workspace is `/` (also `/support`). The original execution-firewall attack lab remains at `/lab`. This is an evolution of the existing hackathon project; the historical documentation below describes that earlier build.
 
