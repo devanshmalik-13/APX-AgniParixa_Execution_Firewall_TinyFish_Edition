@@ -8,11 +8,35 @@ import { webSources, sourceMatches, webFetchSchema } from "../lib/tinyfish/types
 import { createSupportStore } from "../lib/support/store";
 import { hashPlan, verifyPlan } from "../lib/support/policy";
 import { supportTickets } from "../lib/support/fixtures";
+import { verifiedWebEvidence, WEB_EVIDENCE_TTL_MS } from "../lib/tinyfish/integrity";
 
 const tinyKey = "synthetic-tinyfish-key-123456789";
 const source = webSources[0];
 const page = (text = "Refunds should be explained using the original payment method.", extra = {}) => ({ results: [{url:source.url,final_url:source.url,title:"Public refund reference",format:"markdown",text,...extra}], errors: [] });
 const success = (body: unknown) => (async () => Response.json(body)) as typeof fetch;
+
+test("reference integrity enforces exact lifetime, source, content and freshness", async () => {
+  const at = Date.now();
+  const evidence = await fetchWebEvidence(source.id, tinyKey, success(page()), at);
+  assert.ok(await verifiedWebEvidence(evidence, at));
+  assert.equal(await verifiedWebEvidence(evidence, at - 1), null);
+  assert.equal(await verifiedWebEvidence(evidence, at + WEB_EVIDENCE_TTL_MS), null);
+  for (const changed of [
+    { ...evidence, text: "Tampered content" },
+    { ...evidence, expiresAt: new Date(at + 2 * WEB_EVIDENCE_TTL_MS).toISOString() },
+    { ...evidence, finalUrl: "https://outside.example.test" },
+    { ...evidence, provider: "forged" },
+  ]) assert.equal(await verifiedWebEvidence(changed, at), null);
+});
+
+test("TinyFish releases streaming reader locks on success and rejected oversized bodies", async () => {
+  for (const oversized of [false, true]) {
+    const response = oversized ? new Response("x".repeat(513000)) : Response.json(page());
+    const result = fetchWebEvidence(source.id, tinyKey, async () => response);
+    if (oversized) await assert.rejects(result, /oversized/); else await result;
+    assert.equal(response.body?.locked, false);
+  }
+});
 
 test("TinyFish uses the official Fetch API request contract with only the approved public URL", async () => {
   let called = false;
@@ -72,6 +96,21 @@ function database() {
   const db={prepare:(sql:string)=>new Statement(sql),batch:async(statements:Statement[])=>{sqlite.exec("BEGIN IMMEDIATE");try{const result=statements.map(statement=>statement.runSync());sqlite.exec("COMMIT");return result;}catch(error){sqlite.exec("ROLLBACK");throw error;}}} as unknown as D1Database;
   return {db,sqlite};
 }
+
+test("damaged stored references fail with a controlled conflict and cannot substitute another ID", async () => {
+  const { db, sqlite } = database();
+  try {
+    const store = createSupportStore(db, { model: "replay" });
+    assert.equal((await store.assignedTicket("owner", "tkt-1042"))?.id, "tkt-1042");
+    assert.equal(await store.assignedTicket("owner", "missing"), null);
+    const evidence = await fetchWebEvidence(source.id, tinyKey, success(page()));
+    await saveWebEvidence(db, "owner", "tkt-1042", evidence);
+    for (const json of ["{broken", "null", JSON.stringify({ ...evidence, id: crypto.randomUUID() })]) {
+      sqlite.prepare("UPDATE support_web_evidence SET evidence_json=? WHERE owner_id=? AND id=?").run(json, "owner", evidence.id);
+      await assert.rejects(loadWebEvidence(db, "owner", "tkt-1042", evidence.id), (error: unknown) => error instanceof Error && "status" in error && error.status === 409);
+    }
+  } finally { sqlite.close(); }
+});
 
 test("web evidence and fetch reservations are durable, account-bound, ticket-bound and expiring", async () => {
   const {db,sqlite}=database();

@@ -1,4 +1,6 @@
-# APX — Safe execution for AI support agents
+# APX — AgniParixa Execution Firewall · TinyFish Edition
+
+[GitHub repository](https://github.com/devanshmalik-13/APX-AgniParixa_Execution_Firewall_TinyFish_Edition) · [Code quality review and verification](./docs/CODE_QUALITY_REVIEW.md)
 
 APX turns an AI agent's proposed support actions into a reviewable, scoped transaction. It reads an assigned ticket, previews invoice changes and replies, enforces customer-specific permissions outside the model, commits permitted actions atomically, and supports compensating recovery.
 
@@ -50,7 +52,10 @@ Gemini's free tier is quota limited and can use submitted content for product im
 
 ## Verification
 
+`npm run verify` runs warning-free lint, strict type checking, the TypeScript tests, all three deterministic evaluations and the production build. GitHub Actions runs this pipeline and the isolated Python observer tests on pushes and pull requests. Neither CI job needs provider credentials or downloads a model checkpoint. Local HTTP checks below additionally exercise actual persistence and the configured inference service.
+
 ```sh
+npm run lint
 npm run typecheck
 npm test
 npm run test:observer

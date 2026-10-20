@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { WorkspaceHeader, WorkspaceHeading } from "@/components/workspace-chrome";
 import {
   ArrowDownToLine, ArrowRight, BarChart3, ChevronUp, Eye, FileSearch,
-  Info, LoaderCircle, LockKeyhole, RefreshCw, Server, ShieldCheck, Ticket,
+  Info, LoaderCircle, LockKeyhole, RefreshCw, Server,
 } from "lucide-react";
 import type { ObserverConfigView, ObserverEvidence, ObserverInputText, ObserverModelKey } from "@/lib/observer/types";
 

@@ -17,8 +17,7 @@ export async function POST(request: Request) {
     const input = webFetchSchema.parse(await readSupportBody(request, 1800));
     const key = input.apiKey || env.TINYFISH_API_KEY;
     if (!key) throw new TinyFishError(503, "Enter your TinyFish key below. It is separate from your model-provider key.");
-    const dashboard = await store.dashboard(owner);
-    if (!dashboard.tickets.some(ticket => ticket.id === input.ticketId)) return supportResponse({error: "Select an assigned support ticket first."}, 404);
+    if (!await store.assignedTicket(owner, input.ticketId)) return supportResponse({ error: "Select an assigned support ticket first." }, 404);
     await reserveWebFetch(env.DB!, owner);
     const evidence = await fetchWebEvidence(input.sourceId, key, fetch, Date.now(), [env.GEMINI_API_KEY, env.OPENAI_API_KEY, env.MODEL_CONNECTION_SECRET].filter((value): value is string => !!value));
     await saveWebEvidence(env.DB!, owner, input.ticketId, evidence);

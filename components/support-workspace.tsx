@@ -88,7 +88,6 @@ export function SupportWorkspace() {
   useEffect(() => {
     viewportRef.current?.scrollTo({ top: 0 });
   }, [panel]);
-  useEffect(() => { setWebEvidence(null); }, [ticketId]);
 
   async function loadDashboard(signal?: AbortSignal) {
     const next = await readResponse<SupportDashboard>(await fetch("/api/support", { cache: "no-store", signal }));
@@ -101,11 +100,11 @@ export function SupportWorkspace() {
   useEffect(() => {
     const controller = new AbortController();
     const requestedPanel = workspacePanels.find(item => item.id === new URLSearchParams(window.location.search).get("panel"));
-    if (requestedPanel) setPanel(requestedPanel.id);
     fetch("/api/support", { cache: "no-store", signal: controller.signal })
       .then((response) => readResponse<SupportDashboard>(response))
       .then(async (next) => {
         if (controller.signal.aborted) return;
+        if (requestedPanel) setPanel(requestedPanel.id);
         setDashboard(next);
         setTicketId((current) => current || next.tickets[0]?.id || "");
         setAuthRequired(false);
@@ -146,6 +145,7 @@ export function SupportWorkspace() {
 
   function chooseTicket(next: SupportTicket) {
     if (busy) return;
+    if (next.id !== ticketId) { setWebEvidence(null); setWebBusy(false); }
     setTicketId(next.id);
     setPlan(null);
     setApproved(false);
@@ -155,6 +155,7 @@ export function SupportWorkspace() {
 
   function choosePlan(next: SupportPlan) {
     if (busy) return;
+    if (next.ticketId !== ticketId) { setWebEvidence(null); setWebBusy(false); }
     setTicketId(next.ticketId);
     setPlan(next);
     setApproved(false);
@@ -289,7 +290,7 @@ export function SupportWorkspace() {
               </div>
               <p className="apx-scenario-description">{scenarios.find((item) => item.value === scenario)?.description}</p>
               {scenario !== "normal" && <details className="apx-injected-source"><summary><FileText size={12} />Inspect appended attack text<ChevronDown size={12} /></summary><pre>{scenarioContent[scenario].trim()}</pre><p>Live mode reads this as ticket content. Replay stages fixed adversarial proposals for the same scenario.</p></details>}
-              <TinyFishResearch ticketId={ticketId} disabled={!!busy} liveAvailable={!!dashboard?.config.liveAvailable} evidence={webEvidence} onBusyChange={setWebBusy} onDraft={next => { choosePlan(next); void loadDashboard().catch(() => setError("The draft was staged, but activity could not refresh.")); }} onEvidence={value => { setWebEvidence(value); if (value && dashboard?.config.liveAvailable) setMode("live"); }} />
+              <TinyFishResearch key={ticketId} ticketId={ticketId} disabled={!!busy} liveAvailable={!!dashboard?.config.liveAvailable} evidence={webEvidence} onBusyChange={setWebBusy} onDraft={next => { choosePlan(next); void loadDashboard().catch(() => setError("The draft was staged, but activity could not refresh.")); }} onEvidence={value => { setWebEvidence(value); if (value && dashboard?.config.liveAvailable) setMode("live"); }} />
               <details className="apx-note"><summary>Additional customer context <span>live mode · optional</span></summary><label className="apx-field"><span className="apx-sr-only">Additional customer context</span><textarea value={note} onChange={(event) => setNote(event.target.value)} disabled={!!busy || mode === "replay"} maxLength={2000} placeholder="For example: explain the refund calculation in the reply." rows={3} /></label><p>Live mode treats this text as untrusted customer input. Replay uses fixed test proposals. Neither can widen the task grant.</p></details>
 <details className="apx-folded"><summary><LockKeyhole size={14} />Task permissions<ChevronDown size={14} /></summary><section className="apx-panel apx-grant-panel" aria-labelledby="grant-title"><div className="apx-panel-heading"><div><span className="apx-section-label">TRUSTED APPLICATION SCOPE</span><h2 id="grant-title">Task permission grant</h2></div><LockKeyhole size={18} className="apx-accent" /></div>
               <div className="apx-grant-note"><ShieldCheck size={15} /><span>{plan ? "Derived on the server from this ticket's records." : "A grant is issued when the task is staged."}</span></div>

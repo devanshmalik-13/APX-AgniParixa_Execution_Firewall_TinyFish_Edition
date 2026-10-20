@@ -65,7 +65,7 @@ export function ModelConnect({ ticket, disabled, onConnected, onContinue, onProp
       {connection?.connected && <button className="apx-text-button" disabled={disabled || busy} onClick={onContinue}>Use this model in Planner<ArrowRight size={14} /></button>}
     </section>
     <aside className="apx-panel apx-connect-card apx-connect-boundary"><span className="workspace-kicker">WHAT IS PROTECTED</span><h2>Model → proposal → policy → review</h2><div className="apx-connect-shield"><ShieldCheck size={38} /></div><p>Your model can read the assigned sandbox invoice and propose actions. APX checks customer scope, refunds, recipients, secret payloads, and tool budgets. Writes remain staged until reviewed.</p><dl><div><dt>Assigned customer</dt><dd>{ticket?.customerName ?? "Select a request"}</dd></div><div><dt>Invoice scope</dt><dd>{ticket?.invoiceId ?? "No invoice selected"}</dd></div><div><dt>Execution</dt><dd>Sandbox connectors only</dd></div></dl><p className="apx-connect-limit">This protects actions routed through APX in this workspace. It does not secure unrelated applications, data already sent to a provider, model weights, or tools that bypass the gateway. Real databases and tools need scoped connector integration.</p><p>Groq and OpenRouter let you connect supported open and commercial models. The selected model must support function calling. Other agents can submit proposals below.</p></aside>
-    <ExternalProposals ticket={ticket} disabled={disabled || busy} onProposed={onProposed} />
+    <ExternalProposals key={ticket?.id ?? "no-ticket"} ticket={ticket} disabled={disabled || busy} onProposed={onProposed} />
   </div>;
 }
 
@@ -80,21 +80,25 @@ function exampleActions(ticket: SupportTicket, example: Example) {
 
 function ExternalProposals({ ticket, disabled, onProposed }: { ticket?: SupportTicket; disabled: boolean; onProposed: (plan: SupportPlan) => void }) {
   const [example, setExample] = useState<Example>("safe");
-  const [proposal, setProposal] = useState("");
+  const [proposal, setProposal] = useState(() => ticket ? exampleActions(ticket, "safe") : "[]");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const lock = useRef(false);
-  useEffect(() => { setExample("safe"); setProposal(ticket ? exampleActions(ticket, "safe") : "[]"); setError(""); }, [ticket?.id]);
+  const controllerRef = useRef<AbortController | null>(null);
+  useEffect(() => () => controllerRef.current?.abort(), []);
   async function stage() {
     if (!ticket || lock.current) return;
     lock.current = true; setBusy(true); setError("");
+    const controller = new AbortController();
+    controllerRef.current = controller;
     try {
       const actions: unknown = JSON.parse(proposal);
       if (!Array.isArray(actions) || !actions.length || actions.length > 8) throw new Error("Provide between 1 and 8 actions in a JSON array.");
-      const data = await json<{ plan: SupportPlan }>(await fetch("/api/execution/plans", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: ticket.id, actions }) }));
-      onProposed(data.plan);
-    } catch (failure) { setError(failure instanceof SyntaxError ? "Enter a valid JSON array of action proposals." : failure instanceof Error ? failure.message : "Proposal submission failed."); }
-    finally { lock.current = false; setBusy(false); }
+      const data = await json<{ plan: SupportPlan }>(await fetch("/api/execution/plans", { method: "POST", signal: controller.signal, headers: { "content-type": "application/json" }, body: JSON.stringify({ ticketId: ticket.id, actions }) }));
+      if (!controller.signal.aborted) onProposed(data.plan);
+    } catch (failure) {
+      if (!controller.signal.aborted) setError(failure instanceof SyntaxError ? "Enter a valid JSON array of action proposals." : failure instanceof Error ? failure.message : "Proposal submission failed.");
+    } finally { lock.current = false; if (!controller.signal.aborted) setBusy(false); }
   }
   return <details className="apx-panel apx-external-proposals"><summary><Code2 size={18} /><span><b>Bring an existing agent</b><small>Advanced: submit its action proposals through the same review workflow.</small></span></summary><div><p>Any model can supply typed action proposals. This editor stages them for the assigned request; it does not connect your other application automatically. Server-owned permissions and strict review still apply.</p><label className="apx-field"><span>Example proposal</span><select value={example} disabled={disabled || busy || !ticket} onChange={event => { const next = event.target.value as Example; setExample(next); if (ticket) setProposal(exampleActions(ticket, next)); }}><option value="safe">Safe reply</option><option value="cross-customer">Another customer&apos;s invoice</option><option value="over-limit">Excessive refund + safe reply</option><option value="export">Bulk export + safe reply</option></select></label><label className="apx-field"><span>Action proposals (JSON array)</span><textarea value={proposal} disabled={disabled || busy} onChange={event => setProposal(event.target.value)} maxLength={10000} spellCheck={false} /></label>{error && <p className="apx-alert apx-alert-error" role="alert">{error}</p>}<div className="apx-connect-actions"><button className="apx-button apx-button-primary" disabled={disabled || busy || !ticket || !proposal.trim()} onClick={() => void stage()}>{busy ? "Staging…" : "Stage proposal & review"}<ArrowRight size={14} /></button><button className="apx-button" disabled={disabled || busy || !ticket} onClick={() => ticket && setProposal(exampleActions(ticket, example))}>Reset example</button></div><p className="apx-connect-probe">POST /api/execution/plans · signed-in session · no effects during staging</p></div></details>;
 }

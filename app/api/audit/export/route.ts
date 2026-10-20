@@ -10,7 +10,7 @@ export async function GET() {
         "cache-control": "no-store",
       },
     });
-  } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "Export failed" }, { status: 500 });
+  } catch {
+    return Response.json({ error: "Audit export failed. Please retry." }, { status: 500 });
   }
 }

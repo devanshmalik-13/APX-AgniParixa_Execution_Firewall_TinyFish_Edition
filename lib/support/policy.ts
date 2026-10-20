@@ -2,6 +2,7 @@ import { z } from "zod";
 import { scanForSecrets } from "../security/secret-scanner";
 import { redactAuditValue } from "../security/audit-redaction";
 import { supportTickets } from "./fixtures";
+import { verifiedWebEvidence } from "../tinyfish/integrity";
 import type { ActionDecision, PolicyProfile, SupportAction, SupportInvoice, SupportPlan, SupportTicket, TaskGrant } from "./types";
 
 const boundedId = z.string().min(1).max(100);
@@ -109,10 +110,8 @@ export async function verifyPlan(plan: SupportPlan, now = Date.now()): Promise<b
     if (!ticket || !Number.isFinite(created) || now >= Date.parse(plan.expiresAt) || created > now || !["standard", "strict"].includes(plan.profile) || !["replay", "live", "external"].includes(plan.mode)) return false;
     if (plan.provider !== undefined && (plan.mode !== "live" || !["openai", "gemini", "groq", "openrouter"].includes(plan.provider))) return false;
     if (plan.webEvidence !== undefined) {
-      const { webEvidenceSchema, sourceMatches } = await import("../tinyfish/types");
-      const { contentHash } = await import("../tinyfish/client");
-      const evidence = webEvidenceSchema.parse(plan.webEvidence);
-      if ((plan.mode !== "live" && !(plan.mode === "external" && plan.model === "tinyfish-reference-draft-v1")) || !sourceMatches(evidence.sourceId, evidence.url) || !sourceMatches(evidence.sourceId, evidence.finalUrl) || Date.parse(evidence.fetchedAt) > created || Date.parse(evidence.expiresAt) <= created || await contentHash(evidence.text) !== evidence.sha256) return false;
+      if ((plan.mode !== "live" && !(plan.mode === "external" && plan.model === "tinyfish-reference-draft-v1"))
+        || !await verifiedWebEvidence(plan.webEvidence, created)) return false;
     }
     if (plan.mode === "external" && (plan.profile !== "strict" || !["external-proposal-v1", "tinyfish-reference-draft-v1"].includes(plan.model))) return false;
     if (plan.model === "tinyfish-reference-draft-v1" && (!plan.webEvidence || plan.actions.length !== 1 || plan.actions[0].action.type !== "send_reply")) return false;

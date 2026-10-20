@@ -10,5 +10,5 @@ export async function GET(_request: Request, context: { params: Promise<{ actorI
     if (!records.length) return NextResponse.json({ error: "No records for this user" }, { status: 404 });
     const bytes = await createIncidentReport(records, "user");
     return new Response(new Uint8Array(bytes), { headers: { "content-type": "application/pdf", "content-disposition": `attachment; filename="apx-user-${actorId}.pdf"`, "cache-control": "private, no-store" } });
-  } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Report generation failed" }, { status: 500 }); }
+  } catch { return NextResponse.json({ error: "Report generation failed. Please retry." }, { status: 500 }); }
 }

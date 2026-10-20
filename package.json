@@ -25,7 +25,8 @@
     "observer:dev": "node scripts/start-observer-local.mjs",
     "typecheck": "tsc --noEmit",
     "check:local": "tsx scripts/check-local-gateway.ts",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "lint": "eslint . --max-warnings 0",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run evaluate:support && npm run evaluate:combinations && npm run evaluate && npm run build",
     "db:generate": "drizzle-kit generate",
     "db:local:init": "node scripts/init-local-db.mjs"
   },

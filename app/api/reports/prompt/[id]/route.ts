@@ -10,5 +10,5 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     if (!record) return NextResponse.json({ error: "Prompt not found" }, { status: 404 });
     const bytes = await createIncidentReport([record], "prompt");
     return new Response(new Uint8Array(bytes), { headers: { "content-type": "application/pdf", "content-disposition": `attachment; filename="apx-incident-${id}.pdf"`, "cache-control": "private, no-store" } });
-  } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Report generation failed" }, { status: 500 }); }
+  } catch { return NextResponse.json({ error: "Report generation failed. Please retry." }, { status: 500 }); }
 }

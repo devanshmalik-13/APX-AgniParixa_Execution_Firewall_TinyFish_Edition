@@ -32,10 +32,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ...result, auditIdentity });
   } catch (error) {
     if (error instanceof ZodError) {
-      if (promptId) await markPromptRejected(promptId, "Invalid action envelope");
+      if (promptId) await markPromptRejected(promptId, "Invalid action envelope").catch(() => {});
       return NextResponse.json({ error: "Invalid action envelope", issues: error.issues }, { status: 400 });
     }
-    if (promptId) await markPromptRejected(promptId, error instanceof Error ? error.message : "Gateway failure");
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Gateway failure" }, { status: 500 });
+    if (promptId) await markPromptRejected(promptId, "Gateway failure").catch(() => {});
+    return NextResponse.json({ error: "Gateway processing failed. No successful execution is confirmed; review the audit before retrying." }, { status: 500 });
   }
 }

@@ -48,6 +48,9 @@ next-env.d.ts
 /output/pdf/
 /tmp/pdfs/
 /tmp/checks/
+/tmp/
+/output/*.log
+/output/lint-review.json
 /work/
 
 # Observer inference dependencies and local model/runtime state.

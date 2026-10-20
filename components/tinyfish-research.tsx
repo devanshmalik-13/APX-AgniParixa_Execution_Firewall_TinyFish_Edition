@@ -20,10 +20,7 @@ export function TinyFishResearch({ ticketId, disabled, liveAvailable, evidence, 
     }).catch(() => {});
     return () => controller.abort();
   }, []);
-  useEffect(() => {
-    setError(""); setKey("");
-    return () => { controllerRef.current?.abort(); };
-  }, [ticketId]);
+  useEffect(() => () => { controllerRef.current?.abort(); }, []);
 
   async function retrieve() {
     if (lock.current || !ticketId) return;
@@ -38,7 +35,10 @@ export function TinyFishResearch({ ticketId, disabled, liveAvailable, evidence, 
       if (!parsed.success) throw new Error("The retrieved reference could not be validated. Fetch it again.");
       if (!controller.signal.aborted) onEvidence(parsed.data);
     } catch (failure) { if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : "TinyFish could not be reached."); }
-    finally { setKey(""); setBusy(false); onBusyChange(false); lock.current = false; }
+    finally {
+      if (!controller.signal.aborted) { setKey(""); setBusy(false); onBusyChange(false); }
+      lock.current = false;
+    }
   }
 
   async function stageReference() {
@@ -51,7 +51,10 @@ export function TinyFishResearch({ ticketId, disabled, liveAvailable, evidence, 
       if(!response.ok||!body.plan)throw new Error(body.error||"The reference draft could not be staged.");
       if(!controller.signal.aborted)onDraft(body.plan);
     }catch(failure){if(!controller.signal.aborted)setError(failure instanceof Error?failure.message:"Reference staging failed.");}
-    finally{setBusy(false);onBusyChange(false);lock.current=false;}
+    finally {
+      if (!controller.signal.aborted) { setBusy(false); onBusyChange(false); }
+      lock.current = false;
+    }
   }
 
   return <section className="apx-web-research" aria-labelledby="tinyfish-title">

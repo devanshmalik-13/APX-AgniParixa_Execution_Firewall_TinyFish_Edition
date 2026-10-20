@@ -60,6 +60,10 @@ export function createSupportStore(db: D1Database, config: SupportStoreConfig) {
   async function getTicket(owner: string, id: string): Promise<SupportTicket | null> {
     return (await getTicketSnapshot(owner, id))?.ticket ?? null;
   }
+  async function assignedTicket(owner: string, id: string): Promise<SupportTicket | null> {
+    await seed(owner);
+    return getTicket(owner, id);
+  }
   async function getInvoice(owner: string, id: string): Promise<SupportInvoice | null> {
     const row = await prepare("SELECT * FROM support_invoices WHERE owner_id=? AND id=?", owner, id).first<InvoiceRow>();
     return row ? invoiceFromRow(row) : null;
@@ -262,5 +266,5 @@ export function createSupportStore(db: D1Database, config: SupportStoreConfig) {
     if (!committed) throw new SupportStoreError(503, "The committed plan could not be read.");
     return committed;
   }
-  return { dashboard, stage, stageExternal, stageReference, get, operate };
+  return { dashboard, assignedTicket, stage, stageExternal, stageReference, get, operate };
 }

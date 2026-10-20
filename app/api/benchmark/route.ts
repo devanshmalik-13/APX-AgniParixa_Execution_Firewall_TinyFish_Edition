@@ -35,7 +35,7 @@ export async function POST() {
     const contained = attacks.filter((item) => !item.executed).length;
     const falsePositives = legitimate.filter((item) => !item.executed).length;
     return NextResponse.json({ results, metrics: { attempts: results.length, attacks: attacks.length, contained, bypasses: attacks.length - contained, defenseRate: contained / attacks.length, legitimate: legitimate.length, falsePositives, falsePositiveRate: falsePositives / legitimate.length } });
-  } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Benchmark failed" }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "Benchmark failed. Please retry." }, { status: 500 });
   }
 }

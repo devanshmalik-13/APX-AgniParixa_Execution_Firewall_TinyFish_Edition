@@ -1,0 +1,58 @@
+{
+  "checkedAt": "2026-10-20T17:42:23.689406+00:00",
+  "sourceBaseCommit": "d916791ba2d5d1288b9792a8fb07203a9126cb8a",
+  "repository": "https://github.com/devanshmalik-13/APX-AgniParixa_Execution_Firewall_TinyFish_Edition",
+  "localVerification": {
+    "npmRunVerify": true,
+    "lintWarnings": 0,
+    "typecheck": true,
+    "typescriptTests": {
+      "passed": 262,
+      "failed": 0,
+      "skipped": 0
+    },
+    "pythonTests": {
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    "productionBuild": true,
+    "securityFixtureCases": 16,
+    "supportFixtureCases": 20,
+    "comparisonControls": 5,
+    "supportHttpGroups": 8,
+    "observerHttpGroups": 6,
+    "tinyfishHttpChecks": 7,
+    "attackLabHttpAndPdfChecks": true
+  },
+  "observerDevelopmentEvaluation": {
+    "total": 12,
+    "classified": 12,
+    "suspiciousInputs": 6,
+    "benignInputs": 6,
+    "missedSuspiciousInputs": 1,
+    "falseAlarms": 1,
+    "unknown": 0
+  },
+  "historicalCredentialScan": {
+    "blobsChecked": 468,
+    "knownCredentialMatches": 0,
+    "tinyfishKeyMatches": 0,
+    "secretEnvFiles": 0
+  },
+  "limits": [
+    "Provider-dependent live generation was not repeated; the previous Gemini planner timeout remains documented.",
+    "The earlier real TinyFish fetch and explicit reference-only execution/recovery are recorded separately.",
+    "Browser visual and interactive checks were unavailable because of the existing URL policy restriction.",
+    "Remote GitHub Actions status is checked after push; this file records local verification only.",
+    "Synthetic policy and classifier development inputs do not establish general attack detection rates."
+  ],
+  "relatedReports": [
+    "output/support-http-check.json",
+    "output/observer-http-check.json",
+    "output/tinyfish-http-check.json",
+    "output/observer-evaluation.json",
+    "output/support-evaluation.json",
+    "output/combination-evaluation.json"
+  ]
+}

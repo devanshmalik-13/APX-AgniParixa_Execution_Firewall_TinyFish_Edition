@@ -1,13 +1,12 @@
 import { redactAuditText } from "../security/audit-redaction";
 import { sourceMatches, webSource, type WebEvidence } from "./types";
 import { z } from "zod";
+import { contentHash, WEB_EVIDENCE_TTL_MS } from "./integrity";
+
+export { contentHash } from "./integrity";
 
 export class TinyFishError extends Error {
   constructor(public status: number, message: string) { super(message); this.name = "TinyFishError"; }
-}
-export async function contentHash(text: string) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
 }
 const responseSchema = z.object({ results: z.array(z.object({ url: z.string(), final_url: z.string().nullish(), title: z.string().nullish(), text: z.string().min(1), format: z.literal("markdown") })).max(1), errors: z.array(z.unknown()) });
 
@@ -48,9 +47,15 @@ export async function fetchWebEvidence(sourceId: string, apiKey: string | undefi
     const text = safe.slice(0, 8000);
     return { id: crypto.randomUUID(), provider: "tinyfish", api: "fetch", trust: "untrusted_web", sourceId: source.id,
       url: source.url, finalUrl: source.url, title: redactAuditText(page.title || source.title, [apiKey, ...otherSecrets]).slice(0, 180), text,
-      fetchedAt: new Date(now).toISOString(), expiresAt: new Date(now + 15 * 60000).toISOString(), sha256: await contentHash(text), truncated: safe.length > text.length };
+      fetchedAt: new Date(now).toISOString(), expiresAt: new Date(now + WEB_EVIDENCE_TTL_MS).toISOString(), sha256: await contentHash(text), truncated: safe.length > text.length };
   } catch (error) {
     if (error instanceof TinyFishError) throw error;
     throw new TinyFishError(502, controller.signal.aborted ? "TinyFish timed out. No reference was attached." : "TinyFish returned an invalid response or could not be reached. No reference was attached.");
-  } finally { clearTimeout(timeout); try { await reader?.cancel(); } catch { /* Discard diagnostics. */ } }
+  } finally {
+    clearTimeout(timeout);
+    if (reader) {
+      try { await reader.cancel(); } catch { /* Discard provider diagnostics. */ }
+      finally { reader.releaseLock(); }
+    }
+  }
 }

@@ -5,8 +5,8 @@ import { WorkspaceHeader, WorkspaceHeading } from "@/components/workspace-chrome
 
 import {
   ArrowDownToLine, ArrowRight, BarChart3, Check, ChevronUp, Code2,
-  Eye, FileSearch, FlaskConical, Info, Layers3, LockKeyhole, RefreshCw,
-  Search, ShieldCheck, Ticket,
+  FileSearch, Info, Layers3, LockKeyhole, RefreshCw,
+  Search, ShieldCheck,
 } from "lucide-react";
 import {
   generateCombinationReport,

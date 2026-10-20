@@ -1,5 +1,6 @@
-import { contentHash, TinyFishError } from "./client";
-import { sourceMatches, webEvidenceSchema, type WebEvidence } from "./types";
+import { TinyFishError } from "./client";
+import { verifiedWebEvidence } from "./integrity";
+import type { WebEvidence } from "./types";
 
 export async function saveWebEvidence(db: D1Database, owner: string, ticketId: string, evidence: WebEvidence) {
   await db.prepare("INSERT INTO support_web_evidence(owner_id,id,ticket_id,evidence_json) VALUES (?,?,?,?)").bind(owner, evidence.id, ticketId, JSON.stringify(evidence)).run();
@@ -7,8 +8,10 @@ export async function saveWebEvidence(db: D1Database, owner: string, ticketId: s
 export async function loadWebEvidence(db: D1Database, owner: string, ticketId: string, id: string, now = Date.now()) {
   const row = await db.prepare("SELECT evidence_json FROM support_web_evidence WHERE owner_id=? AND ticket_id=? AND id=?").bind(owner, ticketId, id).first<{evidence_json:string}>();
   if (!row) throw new TinyFishError(404, "That web reference is not available for this account and ticket. Fetch it again.");
-  const evidence = webEvidenceSchema.parse(JSON.parse(row.evidence_json));
-  if (Date.parse(evidence.expiresAt) <= now || Date.parse(evidence.fetchedAt) > now || !sourceMatches(evidence.sourceId, evidence.url) || !sourceMatches(evidence.sourceId, evidence.finalUrl) || await contentHash(evidence.text) !== evidence.sha256) {
+  let value: unknown;
+  try { value = JSON.parse(row.evidence_json); } catch { value = null; }
+  const evidence = await verifiedWebEvidence(value, now);
+  if (!evidence || evidence.id !== id) {
     throw new TinyFishError(409, "The web reference expired or failed verification. Fetch it again before staging.");
   }
   return evidence;

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { redactAuditText } from "../security/audit-redaction";
-import type { ObserverConfigView, ObserverEvidence, ObserverInputText, ObserverModelKey } from "./types";
+import type { ObserverConfigView, ObserverEvidence } from "./types";
 
 export const OBSERVER_MODELS = [
   { key: "prompt-guard-22m", label: "Prompt Guard 2 · 22M", id: "meta-llama/Llama-Prompt-Guard-2-22M", revision: "11614a155199674a0a95e6602d6ab0417b790ed0" },

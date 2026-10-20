@@ -8,7 +8,7 @@ Based on the team's supplied guidelines, received 20 October 2026. The online de
 | --- | --- |
 | AI/ML or Web3 open innovation | AI support-agent authorization and review |
 | Functional TinyFish integration | Fetch feeds live planning, with stored provenance and receipt binding. See TINYFISH_INTEGRATION.md. |
-| Working public repository and README | Existing repository is public at https://github.com/devanshmalik-13/APX-AgniParixa_Execution_Firewall . Push the final checked changes before submission; public visibility does not mean local changes are already there. |
+| Working public repository and README | TinyFish Edition repository: https://github.com/devanshmalik-13/APX-AgniParixa_Execution_Firewall_TinyFish_Edition . Review its commit and Actions status before submission; local verification is documented in CODE_QUALITY_REVIEW.md. |
 | Demo video | Still to record. Show a genuine TinyFish fetch and its use in a plan. The supplied guidelines contain a placeholder for video duration; check the form. |
 | Presentation/PPT | Prepare after the demo flow is settled; the current request prioritizes implementation. |
 | Public social post with repo link | Still to write and publish from the team's account. No post has been sent. |
